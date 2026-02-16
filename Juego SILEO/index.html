@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Desafío Mental Viral 🧠</title>
+    <style>
+        :root {
+            --primary: #8e44ad;
+            --accent: #f1c40f;
+            --correct: #27ae60;
+            --wrong: #c0392b;
+            --google-blue: #4285F4;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px; /* Menos padding en general */
+            color: #333;
+            box-sizing: border-box;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 450px;
+            overflow: hidden;
+            position: relative;
+            min-height: 600px; /* Altura base */
+            display: flex;
+            flex-direction: column;
+            transition: height 0.3s ease;
+        }
+        
+        /* PANTALLAS */
+        .screen {
+            padding: 25px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .hidden { display: none !important; }
+
+        /* TIPOGRAFÍA */
+        h1 { color: var(--primary); font-size: 2rem; margin: 0 0 15px 0; line-height: 1.2; }
+        .intro-text { font-size: 1.1rem; color: #555; margin-bottom: 25px; line-height: 1.5; }
+        
+        /* BOTONES (Optimizados para toques) */
+        button { user-select: none; -webkit-tap-highlight-color: transparent; }
+        
+        .btn-start, .btn-google {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px 30px; /* Área de toque más grande */
+            font-size: 1.1rem;
+            border-radius: 12px; /* Bordes un poco menos redondos para modernizar */
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(142, 68, 173, 0.3);
+            transition: transform 0.2s, background 0.2s;
+            font-weight: bold;
+            width: 100%; /* Ancho completo en móvil por defecto */
+            max-width: 300px;
+            margin-bottom: 15px;
+        }
+        .btn-start:active, .btn-google:active { transform: scale(0.98); }
+        .btn-google { background: var(--google-blue); box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3); }
+
+        .btn-retry {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        /* JUEGO */
+        .top-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #777;
+            font-size: 0.9rem;
+        }
+        .story-box {
+            background: #f8f9fa;
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            text-align: left;
+            margin-bottom: 20px;
+            font-style: italic;
+            border-radius: 8px;
+            font-size: 1rem;
+            line-height: 1.4;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .question { font-weight: 700; margin-bottom: 20px; font-size: 1.1rem; color: #2c3e50; }
+        
+        .options-grid { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .btn-opt {
+            padding: 15px;
+            border: 2px solid #eee;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-align: left;
+            transition: background 0.2s;
+            width: 100%;
+            color: #444;
+        }
+        .btn-opt:active { background: #f0f0f0; }
+        .correct { background-color: var(--correct) !important; color: white !important; border-color: var(--correct) !important; }
+        .wrong { background-color: var(--wrong) !important; color: white !important; border-color: var(--wrong) !important; }
+
+        /* ANIMACIONES Y FEEDBACK */
+        #feedback-anim {
+            height: 30px;
+            margin-top: 15px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+        }
+        .bounce-in { animation: bounce 0.5s; color: var(--correct); opacity: 1 !important; }
+        .shake-in { animation: shake 0.5s; color: var(--wrong); opacity: 1 !important; }
+
+        /* RESULTADOS */
+        .score-display { font-size: 3.5rem; font-weight: 800; color: var(--primary); margin: 5px 0; }
+        .rank-badge { 
+            background: var(--accent); 
+            padding: 8px 20px; 
+            border-radius: 20px; 
+            font-weight: bold; 
+            color: #333;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .form-wrapper {
+            width: 100%;
+            height: 450px; /* Un poco más alto para móviles */
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+            display: none;
+            background: #fff;
+        }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* BARRA DE TIEMPO */
+        .timer-container { width: 100%; height: 6px; background: #eee; position: absolute; top: 0; left: 0; }
+        .timer-bar { height: 100%; background: var(--primary); width: 100%; transition: width 1s linear; }
+
+        /* --- MEDIA QUERIES PARA CELULARES --- */
+        @media (max-width: 480px) {
+            body { padding: 10px; align-items: flex-start; } /* Alineación arriba para evitar cortes */
+            .card { 
+                min-height: 85vh; /* Ocupa más altura en celular */
+                border-radius: 15px;
+            }
+            .screen { padding: 20px; }
+            h1 { font-size: 1.8rem; }
+            .score-display { font-size: 3rem; }
+            .story-box { font-size: 0.95rem; padding: 12px; }
+            .btn-opt { padding: 14px; font-size: 0.95rem; }
+            .intro-text { font-size: 1rem; }
+        }
+
+        @keyframes bounce { 0% { transform: scale(0); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } 100% { transform: translateX(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div id="welcome-screen" class="screen">
+            <h1>🕵️‍♂️ Reto Mental</h1>
+            <p class="intro-text">15 preguntas de lógica traicionera diseñadas para confundirte.</p>
+            <p style="margin-bottom: 30px; font-size: 0.95rem; opacity: 0.8;">¿Podrás completarlo?</p>
+            <button class="btn-start" onclick="startGame()">🚀 ¡EMPEZAR!</button>
+        </div>
+
+        <div id="game-screen" class="screen hidden" style="justify-content: flex-start;">
+            <div class="timer-container"><div id="timer" class="timer-bar"></div></div>
+            
+            <div class="top-bar">
+                <span id="q-count">1/15</span>
+                <span>⏱️ 7s</span>
+            </div>
+
+            <div class="story-box" id="story">...</div>
+            <div class="question" id="question">...</div>
+
+            <div class="options-grid" id="options"></div>
+            
+            <div id="feedback-anim"></div>
+        </div>
+
+        <div id="result-screen" class="screen hidden">
+            <h2>Resultados</h2>
+            <div class="score-display" id="final-score">0/15</div>
+            <div class="rank-badge" id="rank">Principiante</div>
+            <p id="feedback-msg">Mensaje final</p>
+            
+            <button id="btn-show-form" onclick="showForm()" class="btn-google">
+                📝 Llenar Formulario
+            </button>
+
+            <div id="form-container" class="form-wrapper">
+                <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSfCJcKV3T_B2qQSJul9vC9dgou6FeN8oaRH1IDnuLEicfMJdw/viewform?usp=dialog?embedded=true">Loading...</iframe>
+            </div>
+
+            <button class="btn-retry" onclick="location.reload()">🔄 Reintentar</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            { story: "Ana pidió un café helado sin azúcar. Lo probó, se quejó y pidió otro. El mesero trajo uno 'nuevo'. Ana lo probó y dijo: '¡Es el mismo!'.", question: "¿Cómo supo Ana?", options: ["Estaba tibio", "Ella ya le había puesto azúcar", "Marca en el vaso"], correct: 1 },
+            { story: "En una carrera adelantas al segundo.", question: "¿En qué posición vas?", options: ["Segundo", "Primero", "Tercero"], correct: 0 },
+            { story: "El padre de María tiene 5 hijas: Nana, Nene, Nini, Nono...", question: "¿La quinta es?", options: ["Nunu", "María", "Nina"], correct: 1 },
+            { story: "Tren eléctrico al norte, viento al oeste.", question: "¿Hacia dónde va el humo?", options: ["Este", "Sur", "No hay humo"], correct: 2 },
+            { story: "Unos meses tienen 30 días, otros 31.", question: "¿Cuántos tienen 28?", options: ["Uno", "Todos", "Ninguno"], correct: 1 },
+            { story: "Habitación oscura. Tienes un fósforo. Hay vela, lámpara y estufa.", question: "¿Qué enciendes primero?", options: ["Vela", "Lámpara", "Fósforo"], correct: 2 },
+            { story: "Granjero con 17 ovejas, mueren todas menos 9.", question: "¿Cuántas quedan?", options: ["8", "9", "0"], correct: 1 },
+            { story: "Conduces un bus. Suben 10, bajan 5.", question: "¿Color de ojos del conductor?", options: ["Verdes", "Cafés", "Tu color"], correct: 2 },
+            { story: "Agujero de 1x1x1 metros.", question: "¿Cuánta tierra tiene?", options: ["1m cúbico", "Cero", "3m cúbicos"], correct: 1 },
+            { story: "El médico de Pedro es hermano de Juan, pero Juan no tiene hermano médico.", question: "¿Quién es el médico?", options: ["Papá de Pedro", "Hermana de Juan", "Juan miente"], correct: 1 },
+            { story: "Bate y pelota cuestan $1.10. El bate cuesta $1.00 MÁS que la pelota.", question: "¿Precio de la pelota?", options: ["$0.10", "$0.05", "$0.01"], correct: 1 },
+            { story: "¿Cuántos animales de cada especie metió Moisés en el Arca?", question: "Lee bien...", options: ["Uno", "Dos", "Cero"], correct: 2 },
+            { story: "Avión choca en frontera México-USA.", question: "¿Dónde entierran a los sobrevivientes?", options: ["México", "USA", "No se entierran"], correct: 2 },
+            { story: "En una carrera, adelantas al ÚLTIMO.", question: "¿En qué posición quedas?", options: ["Último", "Penúltimo", "Imposible"], correct: 2 },
+            { story: "Nenúfar duplica tamaño diario. Cubre lago en 48 días.", question: "¿Cuándo cubrió la mitad?", options: ["47 días", "24 días", "12 días"], correct: 0 }
+        ];
+
+        let currentIdx = 0;
+        let score = 0;
+        let timeLeft = 7;
+        let timerInterval;
+
+        function startGame() {
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            clearInterval(timerInterval);
+            timeLeft = 7;
+            updateTimerBar();
+
+            const feedback = document.getElementById('feedback-anim');
+            feedback.className = ''; feedback.innerHTML = '';
+
+            if (currentIdx >= questions.length) { endGame(); return; }
+
+            const q = questions[currentIdx];
+            document.getElementById('q-count').innerText = `${currentIdx + 1}/15`;
+            document.getElementById('story').innerText = q.story;
+            document.getElementById('question').innerText = q.question;
+            
+            const optContainer = document.getElementById('options');
+            optContainer.innerHTML = '';
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-opt';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(idx, btn);
+                optContainer.appendChild(btn);
+            });
+            startTimer();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerBar();
+                if (timeLeft <= 0) { clearInterval(timerInterval); handleTimeout(); }
+            }, 1000);
+        }
+
+        function updateTimerBar() {
+            document.getElementById('timer').style.width = (timeLeft / 7) * 100 + '%';
+        }
+
+        function checkAnswer(selectedIdx, btn) {
+            clearInterval(timerInterval);
+            const correctIdx = questions[currentIdx].correct;
+            const buttons = document.querySelectorAll('.btn-opt');
+            const feedback = document.getElementById('feedback-anim');
+            
+            buttons.forEach(b => b.disabled = true);
+
+            if (selectedIdx === correctIdx) {
+                btn.classList.add('correct'); score++;
+                feedback.innerHTML = "🎉 ¡BIEN!"; feedback.className = "bounce-in";
+            } else {
+                btn.classList.add('wrong'); buttons[correctIdx].classList.add('correct');
+                feedback.innerHTML = "❌ ¡ERROR!"; feedback.className = "shake-in";
+            }
+            setTimeout(() => { currentIdx++; loadQuestion(); }, 1800);
+        }
+
+        function handleTimeout() {
+            const correctIdx = questions[currentIdx].correct;
+            const buttons = document.querySelectorAll('.btn-opt');
+            const feedback = document.getElementById('feedback-anim');
+            buttons.forEach(b => b.disabled = true);
+            buttons[correctIdx].classList.add('correct');
+            feedback.innerHTML = "⏰ ¡TIEMPO!"; feedback.className = "shake-in";
+            setTimeout(() => { currentIdx++; loadQuestion(); }, 1800);
+        }
+
+        function endGame() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('final-score').innerText = `${score}/15`;
+            
+            let rank = "🐟 Pececillo";
+            if (score === 15) rank = "🧠 NIVEL DIOS";
+            else if (score >= 12) rank = "🕵️ Maestro";
+            else if (score >= 8) rank = "😐 Promedio";
+            
+            document.getElementById('rank').innerText = rank;
+            document.getElementById('feedback-msg').innerText = score > 10 ? "¡Impresionante!" : "Intenta de nuevo.";
+        }
+
+        function showForm() {
+            document.getElementById('btn-show-form').style.display = 'none';
+            document.getElementById('form-container').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
